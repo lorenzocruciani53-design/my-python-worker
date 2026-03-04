@@ -1,0 +1,21 @@
+{
+    "puff": {
+        "mango": 0,
+        "cocomero": 0,
+        "niger": 5,
+        "fragola": 0
+    },
+    "vendite": [],
+    "guadagni": {
+        "Lorenzo": 294.0,
+        "Gianluca": 165.0,
+        "Matteo": 250.0
+    },
+    "chat_ids": {
+        "bot1": [
+            5668230834
+        ],
+        "bot2": [],
+        "bot3": []
+    }
+}
