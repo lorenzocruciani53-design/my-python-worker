@@ -1,0 +1,79 @@
+name: Cacciatore affari Ready2Game
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cacciatore-affari
+  cancel-in-progress: false
+
+jobs:
+  giro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+      EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+    steps:
+      - name: Controllo segreti
+        id: check
+        run: |
+          if [ -z "$EBAY_CLIENT_ID" ] || [ -z "$TELEGRAM_TOKEN" ]; then
+            echo "Mancano i segreti (EBAY_CLIENT_ID / TELEGRAM_TOKEN): giro saltato."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ok == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.ok == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: arbitraggio/requirements.txt
+
+      # memoria tra un giro e l'altro: annunci già visti, storico prezzi, listino
+      - name: Ripristina memoria
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            arbitraggio/data/affari.sqlite
+            arbitraggio/data/listino.json
+          key: memoria-${{ github.run_id }}
+          restore-keys: memoria-
+
+      - name: Installa
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          pip install -r arbitraggio/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Giro di ricerca
+        if: steps.check.outputs.ok == 'true'
+        run: timeout 12m python -m arbitraggio --una-volta || true
+
+      - name: Salva memoria
+        if: always() && steps.check.outputs.ok == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            arbitraggio/data/affari.sqlite
+            arbitraggio/data/listino.json
+          key: memoria-${{ github.run_id }}
+
+      - name: Pubblica dashboard (scaricabile dalla pagina del giro)
+        if: always() && steps.check.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard
+          path: arbitraggio/data/dashboard.html
+          retention-days: 3
+          if-no-files-found: ignore

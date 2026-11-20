@@ -1,0 +1,4 @@
+data/affari.sqlite
+data/dashboard.html
+__pycache__/
+.env

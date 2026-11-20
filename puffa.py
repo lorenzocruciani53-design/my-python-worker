@@ -9,9 +9,13 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 # CONFIG
 # =========================
 
-TOKEN_1 = "8462903531:AAGfqam9G74Im-jGJjOChJBccwv2Z6_SX4M"
-TOKEN_2 = "7807080838:AAHUgsVYKCzFPoYrTZ3-cS9mcVMA6P3iXfs"
-TOKEN_3 = "8539051757:AAFwdNLpI9vPMp3az-s0Q2cAU1qDnM8J5qg"
+# I token NON vanno scritti nel codice (il repository è pubblico).
+# Impostali come variabili d'ambiente / GitHub Secrets: TOKEN_1, TOKEN_2, TOKEN_3.
+TOKEN_1 = os.environ.get("TOKEN_1", "")
+TOKEN_2 = os.environ.get("TOKEN_2", "")
+TOKEN_3 = os.environ.get("TOKEN_3", "")
+if not (TOKEN_1 and TOKEN_2 and TOKEN_3):
+    raise SystemExit("Mancano le variabili d'ambiente TOKEN_1, TOKEN_2, TOKEN_3 (token dei bot Telegram)")
 
 BOT_KEYS = ["bot1", "bot2", "bot3"]
 BOT_TOKENS = {
