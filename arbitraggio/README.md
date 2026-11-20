@@ -41,6 +41,22 @@ Per attivare un sito metti `"attivo": true` in `config.json`. I siti senza API u
 cambiare formato o bloccare le richieste, e l'uso automatico può violare i loro termini: usali
 con pause lunghe e a tuo rischio.
 
+## Avvio su GitHub Actions (gratis, nessun PC acceso)
+
+Il workflow `.github/workflows/cacciatore-affari.yml` fa un giro ogni 15 minuti e si ricorda
+gli annunci già visti tra un giro e l'altro. Basta aggiungere su GitHub
+(**Settings → Secrets and variables → Actions → New repository secret**) questi segreti:
+
+| Nome | Valore |
+|---|---|
+| `TELEGRAM_TOKEN` | token del bot che manda gli avvisi |
+| `TELEGRAM_CHAT_ID` | il tuo chat id (più id separati da virgola) |
+| `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | chiavi da developer.ebay.com |
+
+La dashboard di ogni giro si scarica dalla pagina **Actions** (allegato "dashboard").
+Limite: i server di GitHub vengono spesso bloccati da Vinted, Subito e Wallapop.
+Per quei siti serve un PC o una VPS.
+
 ## Installazione (PC o VPS)
 
 ```bash
