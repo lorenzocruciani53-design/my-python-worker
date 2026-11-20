@@ -22,8 +22,8 @@ jobs:
       - name: Controllo segreti
         id: check
         run: |
-          if [ -z "$EBAY_CLIENT_ID" ] || [ -z "$TELEGRAM_TOKEN" ]; then
-            echo "Mancano i segreti (EBAY_CLIENT_ID / TELEGRAM_TOKEN): giro saltato."
+          if [ -z "$TELEGRAM_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Mancano i segreti TELEGRAM_TOKEN / TELEGRAM_CHAT_ID: giro saltato."
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"

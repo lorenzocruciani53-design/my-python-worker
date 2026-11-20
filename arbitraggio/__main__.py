@@ -139,6 +139,9 @@ def main():
     db = DB(DATA / "affari.sqlite")
     sources = {n: SOURCES[n](c) for n, c in cfg["siti"].items() if c.get("attivo")}
     print("Siti attivi:", ", ".join(sources) or "nessuno")
+    if not sources:
+        print('Nessun sito attivo: metti "attivo": true per almeno un sito in config.json')
+        return
     n = 0
     while True:
         t0 = time.time()
