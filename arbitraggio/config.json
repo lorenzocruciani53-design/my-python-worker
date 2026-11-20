@@ -1,0 +1,33 @@
+{
+  "intervallo_minuti": 5,
+  "pausa_tra_ricerche_sec": 4,
+  "listino_ore_validita": 24,
+
+  "soglie": {
+    "_spiegazione": "min_* = soglia minima per ricevere l'avviso; top_* = affare 🔥. ROI 0.25 = 25% sul costo.",
+    "min_guadagno": 12,
+    "min_roi": 0.20,
+    "top_guadagno": 40,
+    "top_roi": 0.35,
+    "notifica_da_verificare": false
+  },
+
+  "costi": {
+    "spedizione_verso_r2g": 6.5,
+    "_quota_spiegazione": "parte della spedizione verso R2G attribuita a ogni articolo sotto i 50 € (la spedizione è gratis da 50 € di batch: raggruppando, il costo per pezzo scende)",
+    "quota_spedizione_r2g": 0.25
+  },
+
+  "giochi": {
+    "_spiegazione": "ogni giro cerca anche N giochi singoli di valore, a rotazione, oltre alle ricerche per piattaforma",
+    "valore_minimo_ricerca_singola": 8,
+    "giochi_singoli_per_giro": 15
+  },
+
+  "siti": {
+    "ebay":     {"attivo": true,  "spedizione_default": 5.5, "commissione_fissa": 0, "commissione_perc": 0},
+    "vinted":   {"attivo": false, "spedizione_default": 4.5, "commissione_fissa": 0.70, "commissione_perc": 0.05},
+    "subito":   {"attivo": false, "spedizione_default": 6.9, "commissione_fissa": 0.99, "commissione_perc": 0.05, "categoria": 44, "solo_spedibili": true},
+    "wallapop": {"attivo": false, "spedizione_default": 4.5, "commissione_fissa": 0.50, "commissione_perc": 0.05, "lat": 41.9, "lon": 12.5}
+  }
+}
