@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import listino_excel
 from . import ready2game as r2g
 from .fonti.base import Listing
-from .matcher import Match
+from .matcher import Match, norm
 
 
 @dataclass
@@ -26,8 +27,20 @@ class Deal:
     mediana_mercato: float | None = None
 
 
-def valuta(match: Match, listino: dict) -> float | None:
+def valuta(match: Match, listino: dict, listing: Listing | None = None) -> float | None:
     cfg = listino["config"]
+    excel = listino.get("console_excel") or {}
+    if match.kind == "console" and match.key in excel:
+        # listino Excel (per grado, con accessori obbligatori e detrazioni)
+        if "bannata/modificata" in match.red_flags or "non funzionante" in match.red_flags:
+            return None
+        testo = norm(f"{listing.title} {listing.description}") if listing else ""
+        cond = str((listing.extra or {}).get("condizione", "")) if listing else ""
+        val, grado, note = listino_excel.valuta_console(excel[match.key], testo, cond, match.n_controllers)
+        match.grado, match.note_valutazione = grado, note
+        if excel[match.key].get("label"):
+            match.label = excel[match.key]["label"]
+        return val
     if match.kind == "console":
         pricing = cfg["consoles"].get(match.key)
         if not pricing:
@@ -62,7 +75,7 @@ def affidabilita_venditore(l: Listing) -> tuple[int, list[str]]:
 
 
 def analizza(l: Listing, m: Match, listino: dict, costi: dict, mediana: float | None = None) -> Deal | None:
-    val = valuta(m, listino)
+    val = valuta(m, listino, l)
     if val is None or val <= 0:
         return None
     ship, fee = l.shipping, l.buyer_fee
@@ -77,6 +90,8 @@ def analizza(l: Listing, m: Match, listino: dict, costi: dict, mediana: float | 
     roi = guadagno / costo if costo > 0 else 0
 
     aff, note = affidabilita_venditore(l)
+    if m.grado:
+        note = [f"grado stimato: {m.grado.replace('_', ' ')}"] + m.note_valutazione + note
     rischio = 0
     if m.red_flags:
         rischio += 60; note += [f"🚫 {f}" for f in m.red_flags]

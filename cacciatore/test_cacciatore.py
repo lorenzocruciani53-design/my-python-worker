@@ -1,12 +1,12 @@
-"""Test offline: python -m pytest arbitraggio -q"""
+"""Test offline: python -m pytest cacciatore -q"""
 import json
 from pathlib import Path
 
-from arbitraggio import analisi, dashboard
-from arbitraggio import ready2game as r2g
-from arbitraggio.db import DB
-from arbitraggio.fonti.base import Listing
-from arbitraggio.matcher import GameIndex, match_console, riconosci
+from cacciatore import analisi, dashboard
+from cacciatore import ready2game as r2g
+from cacciatore.db import DB
+from cacciatore.fonti.base import Listing
+from cacciatore.matcher import GameIndex, match_console, riconosci
 
 LISTINO = json.loads((Path(__file__).parent / "data" / "listino.json").read_text(encoding="utf-8"))
 CFG = LISTINO["config"]
@@ -92,3 +92,42 @@ def test_gioco_con_nome_console_e_console_rotta():
     assert m.kind == "console" and m.label == "Switch 1 OLED"
     rotta = match_console("Xbox Series X non si accende")
     assert analisi.valuta(rotta, LISTINO) == 1.0
+
+
+# ---------------- listino Excel (1 dicembre) ----------------
+from cacciatore import listino_excel
+from cacciatore.matcher import norm
+
+XL = listino_excel.leggi_excel(Path(__file__).parent / "data" / "listino_console.xlsx")
+LISTINO_XL = {**LISTINO, "console_excel": XL}
+
+
+def test_excel_letto_tutto():
+    assert len(XL) == 52
+    assert XL["switch1Standard"]["gradi"] == {"eccellente": 120, "molto_buono": 115, "buono": 102, "accettabile": 85}
+    assert XL["switch1Standard"]["detrazioni"]["Dock originale"] == 25
+    assert XL["wiiU"]["obbligatori"] == ["GamePad funzionante"]
+    assert XL["ps5SlimDisc"]["controller"]["price"] == 30
+
+
+def test_esempio_del_listino_switch_senza_dock():
+    # "Switch Standard Molto Buono a 115 € ... senza dock originale. La valutazione scende a 90 €."
+    v, g, _ = listino_excel.valuta_console(XL["switch1Standard"], norm("Nintendo Switch ottime condizioni senza dock"))
+    assert (v, g) == (90, "molto_buono")
+
+
+def test_obbligatori_e_gradi():
+    assert listino_excel.valuta_console(XL["switch1OLED"], norm("Switch OLED solo console"))[0] is None
+    assert listino_excel.valuta_console(XL["wiiU"], norm("Wii U senza gamepad"))[0] is None
+    assert listino_excel.valuta_console(XL["ps2Slim"], norm("PS2 slim molto usata graffi profondi"))[0] is None  # Accettabile: "—"
+    assert listino_excel.valuta_console(XL["ps5SlimDisc"], norm("PS5 slim"), n_controller=1)[0] == 417 + 30
+
+
+def test_analisi_con_excel():
+    l = Listing(site="vinted", id="9", title="Xbox Series X 1TB lettore ottime condizioni", price=300, url="https://x",
+                seller_rating=1.0, seller_reviews=80)
+    d = analisi.analizza(l, match_console(l.title), LISTINO_XL, COSTI)
+    assert d.valutazione == 500 and d.match.label == "Xbox Series X Disco 1 TB"
+    assert any("grado stimato" in n for n in d.note)
+    l2 = Listing(site="vinted", id="10", title="Nintendo Switch joycon drift", price=50, url="https://x")
+    assert analisi.analizza(l2, match_console(l2.title), LISTINO_XL, COSTI) is None

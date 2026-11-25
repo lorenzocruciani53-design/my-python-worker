@@ -26,8 +26,8 @@
 
   "siti": {
     "ebay":     {"attivo": false, "spedizione_default": 5.5, "commissione_fissa": 0, "commissione_perc": 0},
-    "vinted":   {"attivo": false, "spedizione_default": 4.5, "commissione_fissa": 0.70, "commissione_perc": 0.05},
-    "subito":   {"attivo": false, "spedizione_default": 6.9, "commissione_fissa": 0.99, "commissione_perc": 0.05, "categoria": 44, "solo_spedibili": true},
-    "wallapop": {"attivo": false, "spedizione_default": 4.5, "commissione_fissa": 0.50, "commissione_perc": 0.05, "lat": 41.9, "lon": 12.5}
+    "vinted":   {"attivo": true,  "spedizione_default": 4.5, "commissione_fissa": 0.70, "commissione_perc": 0.05},
+    "subito":   {"attivo": true,  "spedizione_default": 6.9, "commissione_fissa": 0.99, "commissione_perc": 0.05, "categoria": 44, "solo_spedibili": true},
+    "wallapop": {"attivo": true,  "spedizione_default": 4.5, "commissione_fissa": 0.50, "commissione_perc": 0.05, "lat": 41.9, "lon": 12.5}
   }
 }

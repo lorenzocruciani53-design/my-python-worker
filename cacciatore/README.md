@@ -1,4 +1,12 @@
-# 🎮 Cacciatore Affari Ready2Game
+# 🎮 Cacciatore Console Ready2Game
+
+> **Listino console:** `data/listino_console.xlsx`, il file Excel di Ready2Game (dal 1° dicembre).
+> Prezzo per grado (Eccellente / Molto Buono / Buono / Accettabile), accessori **obbligatori**
+> (senza, la console viene scartata) e detrazioni per ogni accessorio mancante. Il grado viene stimato
+> in modo **prudente** dal testo dell'annuncio: mai "Eccellente", perché il pacco va direttamente a
+> Ready2Game senza che tu lo veda. Quando esce un nuovo listino basta sostituire il file.
+> I giochi usano il catalogo e la formula del sito.
+
 
 Cerca console e giochi in vendita sui marketplace, li confronta con la **valutazione
 ufficiale Ready2Game** e ti manda una notifica Telegram quando il guadagno è interessante.
@@ -32,10 +40,11 @@ ufficiale Ready2Game** e ti manda una notifica Telegram quando il guadagno è in
 
 | Sito | Stato |
 |---|---|
-| eBay.it | ✅ API ufficiale, servono le chiavi gratuite (vedi sotto) |
-| Vinted | 🧪 sperimentale, disattivato: da collaudare con `--prova` |
-| Subito | 🧪 sperimentale, disattivato |
-| Wallapop | 🧪 sperimentale, disattivato |
+| eBay.it | ⏸ spento: serve l'API ufficiale con chiavi gratuite |
+| Vinted | 🧪 acceso, sperimentale: mai collaudato dal vivo |
+| Subito | 🧪 acceso, sperimentale |
+| Wallapop | 🧪 acceso, sperimentale |
+| Facebook Marketplace, Amazon | ❌ non inclusi: Facebook richiede il login; Amazon blocca i programmi e non vende usato sotto il prezzo di riacquisto |
 
 Per attivare un sito metti `"attivo": true` in `config.json`. I siti senza API ufficiale possono
 cambiare formato o bloccare le richieste, e l'uso automatico può violare i loro termini: usali
@@ -49,9 +58,8 @@ gli annunci già visti tra un giro e l'altro. Basta aggiungere su GitHub
 
 | Nome | Valore |
 |---|---|
-| `TELEGRAM_TOKEN` | token del bot che manda gli avvisi |
-| `TELEGRAM_CHAT_ID` | il tuo chat id (più id separati da virgola) |
-| `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | chiavi da developer.ebay.com |
+| `TELEGRAM_BOTS` | elenco dei bot che ricevono gli avvisi, es. `[{"nome":"Lorenzo","token":"...","chat_id":123},{"nome":"Simone","token":"...","chat_id":456}]` |
+| `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | (facoltativo) chiavi da developer.ebay.com |
 
 La dashboard di ogni giro si scarica dalla pagina **Actions** (allegato "dashboard").
 Limite: i server di GitHub vengono spesso bloccati da Vinted, Subito e Wallapop.
@@ -60,17 +68,16 @@ Per quei siti serve un PC o una VPS.
 ## Installazione (PC o VPS)
 
 ```bash
-pip install -r arbitraggio/requirements.txt
+pip install -r cacciatore/requirements.txt
 python -m playwright install chromium
 
-export TELEGRAM_TOKEN="token del bot (da @BotFather)"
-export TELEGRAM_CHAT_ID="il tuo chat id"         # più id: separati da virgola
+export TELEGRAM_BOTS='[{"token":"...","chat_id":123}]'   # uno o più bot
 export EBAY_CLIENT_ID="..."                       # developer.ebay.com → Production keys
 export EBAY_CLIENT_SECRET="..."
 
-python -m arbitraggio --prova ebay "ps5 slim"    # prova veloce
-python -m arbitraggio                            # avvio continuo (un giro ogni 5 minuti)
-python -m arbitraggio.dashboard --serve          # dashboard su http://IP-DEL-PC:8080/dashboard.html
+python -m cacciatore --prova vinted "ps5 slim"    # prova veloce
+python -m cacciatore                            # avvio continuo (un giro ogni 5 minuti)
+python -m cacciatore.dashboard --serve          # dashboard su http://IP-DEL-PC:8080/dashboard.html
 ```
 
 Senza `TELEGRAM_TOKEN` le notifiche vengono stampate a schermo.
@@ -83,5 +90,5 @@ dashboard quali affari arrivano: se sono troppi alza `min_guadagno`, se sono poc
 ## Test
 
 ```bash
-python -m pytest arbitraggio -q
+python -m pytest cacciatore -q
 ```
