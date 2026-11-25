@@ -133,7 +133,8 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
                       f"{m.label} | {l.title[:70]}{'' if ok else ' [non notificato]'}")
                 trovati += 1
             db.commit()
-            time.sleep(cfg["pausa_tra_ricerche_sec"] * random.uniform(0.7, 1.4))
+        # una pausa per ricerca (non per sito): i siti sono diversi, il giro resta sotto i 10 minuti
+        time.sleep(cfg["pausa_tra_ricerche_sec"] * random.uniform(0.7, 1.4))
     for n, c in conta.items():
         print(f"[{n}] annunci letti: {c['annunci']}, riconosciuti: {c['riconosciuti']}, ricerche fallite: {c['errori']}")
     return trovati

@@ -161,9 +161,41 @@ def _count_controllers(t: str) -> int:
     return 0
 
 
+# Parole ammesse nel titolo di una console. Se il titolo contiene altre parole
+# (es. "Zelda", "Sonic", "Tetris", "balance") quasi sempre è un gioco o altro.
+CONSOLE_VOCAB = set("""
+nintendo switch oled lite ps5 ps4 ps3 ps2 ps1 psx psone playstation play station sony xbox microsoft series one
+wii gamecube game cube boy gameboy gb gbc gba color colour advance sp micro pocket classic mini nes snes famicom
+entertainment system super ds dsi nds xl ll 3ds 2ds new vita psp portal pro slim fat digital digitale edition edizione
+standard disco dischi disc lettore drive all tb gb t g modello versione v1 v2 cfi console handheld portatile
+usata usato usate nuova nuovo nuove come perfetta perfetto perfette ottime ottimo ottima ottimi buone buono buona
+condizioni stato funzionante funzionanti funziona tutto tutti completa completo completi originale originali garanzia
+scontrino imballo scatola box confezione cavi cavo accessori alimentatore caricatore caricabatterie dock hdmi grip
+joycon joy con controller controllers pad joypad dualsense dualshock gamepad sensore barra telecomando telecomandi
+bianca bianco nera nero rossa rosso blu azzurra azzurro turchese grigia grigio corallo gialla giallo verde viola
+rosa neon argento oro trasparente black white red blue grey gray negra negro blanca blanco roja azul
+con e ed da in di del della dei la il lo i gli le senza vendo vendesi vende offerta occasione prezzo trattabile
+spedizione spedita inclusa incluso inclusi ritiro mano a regalo pari al poco pochissimo mai usata
+pal ita italiana europea eu memoria interna base
+galaxy limited special speciale
+non si accende rotta rotto rotti difettosa difettoso guasta guasto drift bannata bannato modificata modificato
+cfw jailbreak pezzi per legge v1 v2 hackerata sbloccata
+""".split())
+
+
+def solo_parole_da_console(t: str) -> bool:
+    for w in t.split():
+        if w in CONSOLE_VOCAB or w.isdigit() or len(w) <= 1 or re.fullmatch(r"\d+(gb|tb|t|g|mb)", w):
+            continue
+        return False
+    return True
+
+
 def match_console(title: str, description: str = "") -> Match | None:
     t = norm(title)
     if any(re.search(rx, t) for rx in NOT_A_CONSOLE):
+        return None
+    if not solo_parole_da_console(t):
         return None
     for key, must, excl in CONSOLE_RULES:
         if all(re.search(rx, t) for rx in must) and not any(re.search(rx, t) for rx in excl):
