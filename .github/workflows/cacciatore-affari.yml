@@ -1,8 +1,9 @@
 name: Cacciatore affari Ready2Game
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
+  # partenza automatica sospesa: per riattivarla rimetti le due righe qui sotto
+  # schedule:
+  #   - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:
