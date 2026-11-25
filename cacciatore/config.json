@@ -9,13 +9,16 @@
     "min_roi": 0.20,
     "top_guadagno": 40,
     "top_roi": 0.35,
-    "notifica_da_verificare": false
+    "notifica_da_verificare": false,
+    "max_notifiche_per_giro": 8
   },
 
   "costi": {
     "spedizione_verso_r2g": 6.5,
     "_quota_spiegazione": "parte della spedizione verso R2G attribuita a ogni articolo sotto i 50 € (la spedizione è gratis da 50 € di batch: raggruppando, il costo per pezzo scende)",
-    "quota_spedizione_r2g": 0.25
+    "quota_spedizione_r2g": 0.25,
+    "_prezzo_minimo_spiegazione": "annunci che costano meno del 40% del valore vengono scartati (accessori, pezzi rotti, truffe)",
+    "prezzo_minimo_perc": 0.40
   },
 
   "giochi": {
