@@ -1,10 +1,10 @@
 """Cacciatore di affari per il riacquisto Ready2Game.
 
 Uso:
-  python -m arbitraggio                 # gira per sempre, un giro ogni N minuti
-  python -m arbitraggio --una-volta     # un solo giro (per cron / GitHub Actions)
-  python -m arbitraggio --prova ebay "ps5 slim"   # prova un sito e mostra cosa riconosce
-  python -m arbitraggio --listino       # forza l'aggiornamento del listino R2G
+  python -m cacciatore                 # gira per sempre, un giro ogni N minuti
+  python -m cacciatore --una-volta     # un solo giro (per cron / GitHub Actions)
+  python -m cacciatore --prova ebay "ps5 slim"   # prova un sito e mostra cosa riconosce
+  python -m cacciatore --listino       # forza l'aggiornamento del listino R2G
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import analisi, dashboard, notifiche
+from . import analisi, dashboard, listino_excel, notifiche
 from . import ready2game as r2g
 from .db import DB
 from .fonti.ebay import Ebay
@@ -47,12 +47,28 @@ def console_query(label: str) -> str:
     return re.sub(r"\s+", " ", q.replace("All-Digital", "digital").replace("Disco", "")).strip()
 
 
+def carica_listino(lpath: Path, ore: float, forza: bool = False) -> dict:
+    listino = r2g.download_listino(lpath) if forza else r2g.load_listino(lpath, ore)
+    xlsx = DATA / "listino_console.xlsx"
+    if xlsx.exists():
+        listino["console_excel"] = listino_excel.leggi_excel(xlsx)
+    return listino
+
+
 def build_queries(listino: dict, cfg: dict, giro: int) -> list[tuple[str, float | None, str | None]]:
     """(query, prezzo massimo, piattaforma suggerita)."""
     qs = []
-    for key, c in listino["config"]["consoles"].items():
-        if c.get("price"):
-            qs.append((console_query(c["label"]), float(c["price"]) * 1.1, None))
+    excel = listino.get("console_excel")
+    if excel:
+        for key, c in excel.items():
+            prezzi = [p for p in c["gradi"].values() if p]
+            if prezzi:
+                qs.append((console_query(listino["config"]["consoles"].get(key, {}).get("label", c["label"])),
+                           max(prezzi) * 1.1, None))
+    else:
+        for key, c in listino["config"]["consoles"].items():
+            if c.get("price"):
+                qs.append((console_query(c["label"]), float(c["price"]) * 1.1, None))
     for plat, lst in PLATFORM_QUERIES.items():
         mx = max((g["buyback_with_box"] for g in listino["games"] if g["platform"] == plat), default=50)
         for q in lst:
@@ -121,9 +137,10 @@ def main():
 
     cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
     lpath = DATA / "listino.json"
-    listino = r2g.download_listino(lpath) if a.listino else r2g.load_listino(lpath, cfg["listino_ore_validita"])
+    listino = carica_listino(lpath, cfg["listino_ore_validita"], forza=a.listino)
     idx = GameIndex(listino["games"])
-    print(f"Listino R2G: {len(listino['config']['consoles'])} console, {len(listino['games'])} giochi")
+    print(f"Listino R2G: {len(listino.get('console_excel') or listino['config']['consoles'])} console"
+          f"{' (Excel, per grado)' if listino.get('console_excel') else ''}, {len(listino['games'])} giochi")
     if a.listino:
         return
 
@@ -147,7 +164,7 @@ def main():
         t0 = time.time()
         try:
             if time.time() - listino.get("updated", 0) > cfg["listino_ore_validita"] * 3600:
-                listino = r2g.load_listino(lpath, cfg["listino_ore_validita"]); idx = GameIndex(listino["games"])
+                listino = carica_listino(lpath, cfg["listino_ore_validita"]); idx = GameIndex(listino["games"])
             k = giro(cfg, listino, idx, db, sources, n)
             dashboard.genera(db, listino, DATA / "dashboard.html")
             print(f"[{time.strftime('%H:%M')}] giro {n} completato in {time.time()-t0:.0f}s, nuovi affari: {k}")

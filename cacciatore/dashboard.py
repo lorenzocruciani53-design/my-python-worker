@@ -1,7 +1,7 @@
 """Dashboard: una pagina HTML con tutti gli affari, le statistiche e il listino.
 
-Viene rigenerata a ogni giro in arbitraggio/data/dashboard.html.
-Per vederla dal telefono sulla stessa rete:  python -m arbitraggio.dashboard --serve
+Viene rigenerata a ogni giro in cacciatore/data/dashboard.html.
+Per vederla dal telefono sulla stessa rete:  python -m cacciatore.dashboard --serve
 """
 from __future__ import annotations
 

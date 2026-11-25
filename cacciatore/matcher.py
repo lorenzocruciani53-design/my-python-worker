@@ -124,6 +124,8 @@ class Match:
     damaged: bool = False
     n_controllers: int = 0
     shop_price: float = 0.0
+    grado: str = ""                                   # grado stimato (listino Excel)
+    note_valutazione: list[str] = field(default_factory=list)
 
 
 def flags(text: str) -> tuple[list[str], list[str]]:

@@ -4,7 +4,7 @@ Questi siti non hanno un'API pubblica: i moduli usano gli stessi endpoint
 interni che usa il loro sito web. Non è stato possibile collaudarli dal
 server di sviluppo, quindi sono DISATTIVATI di default in config.json.
 Attivali uno alla volta sul tuo PC/VPS e controlla con:
-    python -m arbitraggio --prova vinted "ps5 slim"
+    python -m cacciatore --prova vinted "ps5 slim"
 Se un sito cambia formato, il modulo stampa l'errore e il bot continua con gli altri.
 Nota: l'uso automatizzato può essere contrario ai termini dei siti; tieni
 intervalli lunghi (config: "pausa_tra_ricerche_sec") e usali a tuo rischio.
