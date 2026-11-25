@@ -143,6 +143,8 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
 def main():
     ap = argparse.ArgumentParser(description="Cacciatore affari Ready2Game")
     ap.add_argument("--una-volta", action="store_true")
+    ap.add_argument("--durata-minuti", type=float, default=0,
+                    help="gira in continuo per N minuti e poi si ferma (0 = per sempre)")
     ap.add_argument("--listino", action="store_true")
     ap.add_argument("--prova", nargs=2, metavar=("SITO", "RICERCA"))
     ap.add_argument("--config", default=str(ROOT / "config.json"))
@@ -174,13 +176,13 @@ def main():
     if not sources:
         print('Nessun sito attivo: metti "attivo": true per almeno un sito in config.json')
         return
-    n = 0
+    n, inizio = 0, time.time()
     while True:
         t0 = time.time()
         try:
             if time.time() - listino.get("updated", 0) > cfg["listino_ore_validita"] * 3600:
                 listino = carica_listino(lpath, cfg["listino_ore_validita"]); idx = GameIndex(listino["games"])
-            k = giro(cfg, listino, idx, db, sources, n)
+            k = giro(cfg, listino, idx, db, sources, int(time.time() // 400))  # rotazione giochi legata all'orario
             dashboard.genera(db, listino, DATA / "dashboard.html")
             print(f"[{time.strftime('%H:%M')}] giro {n} completato in {time.time()-t0:.0f}s, nuovi affari: {k}")
         except Exception:
@@ -188,7 +190,11 @@ def main():
         n += 1
         if a.una_volta:
             break
-        time.sleep(max(30, cfg["intervallo_minuti"] * 60 - (time.time() - t0)))
+        attesa = max(cfg.get("pausa_minima_tra_giri_sec", 30), cfg["intervallo_minuti"] * 60 - (time.time() - t0))
+        if a.durata_minuti and time.time() + attesa + 8 * 60 > inizio + a.durata_minuti * 60:
+            print("Tempo a disposizione finito: chiudo (il prossimo turno riparte da qui).")
+            break
+        time.sleep(attesa)
 
 
 if __name__ == "__main__":
