@@ -1,4 +1,7 @@
 {
+  "_notifiche_spiegazione": "nomi dei bot (campo nome in TELEGRAM_BOTS) che ricevono gli avvisi; lista vuota = tutti",
+  "notifiche_solo_a": ["Lorenzo"],
+
   "intervallo_minuti": 5,
   "pausa_tra_ricerche_sec": 4,
   "listino_ore_validita": 24,

@@ -14,13 +14,20 @@ import os
 import requests
 
 
+# Nomi dei bot attivi (da config.json "notifiche_solo_a"). Vuoto = tutti.
+SOLO_A: list[str] = []
+
+
 def destinatari() -> list[tuple[str, str]]:
     """Lista di (token, chat_id)."""
     out = []
+    solo = {n.strip().lower() for n in SOLO_A if n.strip()}
     raw = os.environ.get("TELEGRAM_BOTS", "").strip()
     if raw:
         try:
             for b in json.loads(raw):
+                if solo and str(b.get("nome", "")).strip().lower() not in solo:
+                    continue
                 if b.get("token") and b.get("chat_id"):
                     out.append((str(b["token"]).strip(), str(b["chat_id"]).strip()))
         except (json.JSONDecodeError, AttributeError, TypeError):

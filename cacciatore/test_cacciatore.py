@@ -160,3 +160,13 @@ def test_console_vere_ancora_riconosciute():
     for t, k in CONSOLE_VERE:
         m = match_console(t)
         assert m and m.key == k, (t, m and m.key)
+
+
+def test_notifiche_solo_a(monkeypatch):
+    from cacciatore import notifiche
+    monkeypatch.setenv("TELEGRAM_BOTS", '[{"nome":"Lorenzo","token":"a","chat_id":1},{"nome":"Simone","token":"b","chat_id":2}]')
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+    monkeypatch.setattr(notifiche, "SOLO_A", ["Lorenzo"])
+    assert notifiche.destinatari() == [("a", "1")]
+    monkeypatch.setattr(notifiche, "SOLO_A", [])
+    assert len(notifiche.destinatari()) == 2
