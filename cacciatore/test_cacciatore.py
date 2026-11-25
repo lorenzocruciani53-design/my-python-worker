@@ -170,3 +170,23 @@ def test_notifiche_solo_a(monkeypatch):
     assert notifiche.destinatari() == [("a", "1")]
     monkeypatch.setattr(notifiche, "SOLO_A", [])
     assert len(notifiche.destinatari()) == 2
+
+
+# Titoli VERI dal primo giro su GitHub (25/11): giochi e oggetti scambiati per console
+DAL_GIRO_FALSI = [
+    "WII U THE LEGEND OF ZELDA", "wii u balance", "Juego Extreme G Racing (XG3) - GameCube",
+    "Harry Potter e il Calice di Fuoco (GameCube)", "Sonic Mega Collection (Nintendo GameCube)",
+    "The Legend Of Zelda Ocarina of Time Nintendo 3ds", "Zero Escape Virtue’s Last Reward 3DS PAL UK",
+    "Espositore XL Game Boy + cartucce", "COMPLETO - Tetris - Gameboy", "Scatola protettiva Game Boy Pocket",
+    "Bomberman Max (Game Boy Color)", "Accessorio game boy advance sp", "Lotto Skylanders Imaginators PS4 + Portale + 6 pg",
+    "Videogiochi ps vita", "Rayman Legends & Origins (PS Vita)", "God of war ita psp", "psp film",
+    "Guardiani della Notte: Cronache di Hinokami PS4", "Lote de 12 Videojuegos para PS4", "Balatro switch 1",
+    "Pokémon Rosso (Nintendo Game Boy)", "Mini Console Retró Nintendo NES",
+]
+DAL_GIRO_VERI = ["Nintendo 3DS Rossa", "New Nintendo 2DS XL Negra", "Nintendo 3DS XL Blu", "PS5 Slim da 1 TB",
+                 "Ps5 Slim 1T", "Xbox Series X", "Nintendo Classic Mini: NES (Entertainment System)"]
+
+
+def test_titoli_reali_del_primo_giro():
+    assert [t for t in DAL_GIRO_FALSI if match_console(t)] == []
+    assert [t for t in DAL_GIRO_VERI if not match_console(t)] == []
