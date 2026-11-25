@@ -2,7 +2,9 @@
   "_notifiche_spiegazione": "nomi dei bot (campo nome in TELEGRAM_BOTS) che ricevono gli avvisi; lista vuota = tutti",
   "notifiche_solo_a": ["Lorenzo"],
 
-  "intervallo_minuti": 5,
+  "_intervallo_spiegazione": "0 = appena finisce un giro ne parte subito un altro (dopo la pausa minima)",
+  "intervallo_minuti": 0,
+  "pausa_minima_tra_giri_sec": 20,
   "pausa_tra_ricerche_sec": 4,
   "listino_ore_validita": 24,
 

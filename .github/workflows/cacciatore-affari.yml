@@ -1,9 +1,9 @@
 name: Cacciatore affari Ready2Game
 
 on:
-  # partenza automatica sospesa: per riattivarla rimetti le due righe qui sotto
-  # schedule:
-  #   - cron: "*/15 * * * *"
+  # ogni ora parte un turno che cerca IN CONTINUO per ~50 minuti (un giro completo ogni ~7 min)
+  schedule:
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 concurrency:
@@ -13,7 +13,7 @@ concurrency:
 jobs:
   giro:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 62
     env:
       PYTHONUNBUFFERED: "1"
       TELEGRAM_BOTS: ${{ secrets.TELEGRAM_BOTS }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: Giro di ricerca
         if: steps.check.outputs.ok == 'true'
-        run: timeout 12m python -m cacciatore --una-volta || true
+        run: timeout 56m python -m cacciatore --durata-minuti 52 || true
 
       - name: Salva memoria
         if: always() && steps.check.outputs.ok == 'true'
