@@ -77,10 +77,27 @@ CONSOLE_RULES: list[tuple[str, list[str], list[str]]] = [
 # Se compaiono queste parole l'annuncio NON è una console intera
 NOT_A_CONSOLE = [r"\bgioc(o|hi)\b", r"\bgame\b(?! ?boy| ?cube)", r"\bcustodia\b", r"\bcover\b",
                  r"\bskin\b", r"\bsolo (scatola|controller|joy ?con|pad|dock|cavo|alimentatore)",
-                 r"\bscatola vuota\b", r"^(controller|joy ?con|pad|joypad|dualsense|dualshock|gamepad)\b",
-                 r"\bvolante\b", r"\bcuffie\b", r"\bheadset\b", r"\bcaricatore\b(?!.*console)",
+                 r"\bscatola vuota\b", r"\bvolante\b", r"\bcuffie\b", r"\bheadset\b", r"\bcaricatore\b(?!.*console)",
                  r"\bstand\b", r"\bsupporto\b", r"\bdock\b(?!.*(console|switch completa))",
-                 r"\bcartuccia\b", r"\bamiibo\b", r"\bguida\b", r"\bpelle\b", r"\bbatteria\b"]
+                 r"\bcartuccia\b", r"\bamiibo\b", r"\bguida\b", r"\bpelle\b", r"\bbatteria\b",
+                 # memorie, protezioni, ricambi, gadget
+                 r"\bmemory\b", r"\bmemoria\b", r"\bmicro ?sd\b", r"\bsd ?card\b", r"\bscheda\b", r"\bsdxc\b", r"\bsdhc\b",
+                 r"\bhard ?disk\b", r"\bssd\b", r"\bpellicol", r"\bvetro temperato\b", r"\bprotezion", r"\badesiv",
+                 r"\bricambi?\b", r"\bpezzi di ricambio\b", r"\bscocca\b", r"\bshell\b", r"\bventol", r"\blettore (di )?ricambio\b",
+                 r"\bborsa\b", r"\bzaino\b", r"\bastuccio\b", r"\bbauletto\b", r"\btracolla\b",
+                 r"\badattatore\b", r"\bconvertitore\b", r"\bprolunga\b", r"\bstazione di ricarica\b", r"\bbasetta\b",
+                 r"\btelecomando\b", r"\bnunchu", r"\bsensor ?bar\b", r"\btastiera\b", r"\bmouse\b",
+                 r"\bwebcam\b", r"\btelecamera\b", r"\bcamera\b", r"\bmicrofono\b", r"\bpsvr\b", r"\bvisore\b",
+                 r"\bmanuale\b", r"\bposter\b", r"\bfigure\b", r"\bfunko\b", r"\bpeluche\b", r"\bgadget\b",
+                 r"\bmaglia", r"\bfelpa\b", r"\btazza\b", r"\blampada\b", r"\bportachiavi\b", r"\bcarta regalo\b",
+                 r"\bgift ?card\b", r"\bricarica\b", r"\babbonamento\b", r"\bcodice\b", r"\bvoucher\b",
+                 r"\bminiatura\b", r"\bmodellino\b", r"\breplica\b", r"\bportatile per\b", r"\bkit\b",
+                 # titolo che INIZIA con un accessorio ("Controller PS5…", "Cavo HDMI per…")
+                 r"^(controller|joy ?con|pad|joypad|dualsense|dualshock|gamepad|cavo|cavi|caricatore|alimentatore"
+                 r"|dock|base|supporto|grip|volante|custodia|cover|case|borsa|memory|scheda|batteria|accessori)\b",
+                 # "… per Nintendo Switch / per PS5": accessorio o gioco PER la console, non la console
+                 r"\bper (la |il )?(nintendo |sony |microsoft )?(switch|ps ?[1-5]|playstation|xbox|wii|3ds|2ds|nds|ds|psp|vita|game ?boy|gamecube)\b(?!.*\bconsole\b)",
+                 r"\bcompatibil", r"\bnon original"]
 
 PLATFORM_HINTS = {
     "Playstation 5": [_PS5], "Playstation 4": [_PS4], "Playstation 3": [r"(ps3|playstation 3)"],

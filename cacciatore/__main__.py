@@ -86,14 +86,18 @@ def build_queries(listino: dict, cfg: dict, giro: int) -> list[tuple[str, float 
 
 
 def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
-    soglie, trovati = cfg["soglie"], 0
+    soglie, trovati, inviati = cfg["soglie"], 0, 0
+    max_notifiche = soglie.get("max_notifiche_per_giro", 8)
+    conta = {n: {"annunci": 0, "riconosciuti": 0, "errori": 0} for n in sources}
     for q, mx, plat in build_queries(listino, cfg, n_giro):
         for name, src in sources.items():
             try:
                 items = src.search(q, mx)
             except Exception as ex:
                 print(f"[{name}] '{q}': {ex}")
+                conta[name]["errori"] += 1
                 continue
+            conta[name]["annunci"] += len(items)
             for l in items:
                 if db.gia_visto(l.uid):
                     continue
@@ -101,6 +105,7 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
                 m = riconosci(l.title, l.description, idx, listino, plat)
                 if not m:
                     continue
+                conta[name]["riconosciuti"] += 1
                 db.registra_prezzo(m.label, l.site, l.price)
                 costi = {"default": src.default_costs, **cfg["costi"]}
                 d = analisi.analizza(l, m, listino, costi, db.mediana(m.label))
@@ -119,11 +124,18 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
                 d.livello = analisi.classifica(d, soglie) or ""
                 if not d.livello:
                     continue
-                invia = d.livello != "👀 DA VERIFICARE" or soglie.get("notifica_da_verificare")
-                db.salva_affare(d, notificato=bool(invia and notifiche.invia(d)))
+                invia = (d.livello != "👀 DA VERIFICARE" or soglie.get("notifica_da_verificare")) \
+                    and inviati < max_notifiche
+                ok = bool(invia and notifiche.invia(d))
+                inviati += ok
+                db.salva_affare(d, notificato=ok)
+                print(f"  AFFARE {d.livello} {l.site} {l.price:.2f}€ -> {d.valutazione:.2f}€ (+{d.guadagno:.2f}) "
+                      f"{m.label} | {l.title[:70]}{'' if ok else ' [non notificato]'}")
                 trovati += 1
             db.commit()
             time.sleep(cfg["pausa_tra_ricerche_sec"] * random.uniform(0.7, 1.4))
+    for n, c in conta.items():
+        print(f"[{n}] annunci letti: {c['annunci']}, riconosciuti: {c['riconosciuti']}, ricerche fallite: {c['errori']}")
     return trovati
 
 

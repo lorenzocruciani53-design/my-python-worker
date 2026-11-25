@@ -72,8 +72,7 @@ def test_analisi_e_dashboard(tmp_path):
     assert d.valutazione == 160 and d.costo_totale == round(95 + 5 + 0.70 + 95 * 0.05, 2)
     assert d.guadagno > 50 and analisi.classifica(d, SOGLIE) == "🔥 TOP"
     truffa = Listing(site="subito", id="2", title="PS5 slim", price=60, url="https://y", seller_reviews=0)
-    dt = analisi.analizza(truffa, match_console(truffa.title), LISTINO, COSTI)
-    assert dt.rischio >= 50 and analisi.classifica(dt, SOGLIE) in ("👀 DA VERIFICARE", None)
+    assert analisi.analizza(truffa, match_console(truffa.title), LISTINO, COSTI) is None  # < 40% del valore: scartato
     rotta = Listing(site="ebay", id="3", title="PS5 slim non funzionante per pezzi", price=100, url="https://z")
     assert analisi.classifica(analisi.analizza(rotta, match_console(rotta.title), LISTINO, COSTI), SOGLIE) is None
 
@@ -131,3 +130,33 @@ def test_analisi_con_excel():
     assert any("grado stimato" in n for n in d.note)
     l2 = Listing(site="vinted", id="10", title="Nintendo Switch joycon drift", price=50, url="https://x")
     assert analisi.analizza(l2, match_console(l2.title), LISTINO_XL, COSTI) is None
+
+
+ACCESSORI = [
+    "Memory card varia per Nintendo Switch o altro", "Micro SD 128GB per Nintendo Switch",
+    "Scheda di memoria Nintendo Switch 256gb", "Pellicola vetro temperato Switch OLED",
+    "Cavo HDMI per PS5", "Caricatore Nintendo Switch originale", "Dock Nintendo Switch originale",
+    "Base di ricarica DualSense PS5", "Borsa trasporto Nintendo Switch", "Grip joycon Nintendo Switch",
+    "Ventola raffreddamento PS4 slim", "Scocca ricambio Game Boy Advance SP", "Telecomando Wii originale",
+    "Sensor bar Wii", "Adattatore Switch HDMI", "Hard disk 1TB per PS4", "Kit accessori Switch Lite",
+    "Supporto da muro PS5", "Joy-con compatibili Switch", "Funko pop PlayStation", "Tazza PS5 controller",
+    "Skin adesiva PS5 slim", "Custodia rigida Switch Lite", "Cuffie Xbox Series X",
+    "PS5 Pro ricambi scheda madre", "Gift card PlayStation 50 euro", "Accessori per Nintendo Switch OLED",
+]
+CONSOLE_VERE = [
+    ("Nintendo Switch OLED bianca completa", "switch1OLED"), ("PS5 Slim con lettore 1TB", "ps5SlimDisc"),
+    ("Console Nintendo Switch Lite turchese", "switchLite"), ("Xbox Series S 512GB come nuova", "xboxSeriesS500GB"),
+    ("PlayStation 4 Pro 1TB + 2 controller", "ps4Pro1TB"), ("Nintendo 3DS XL rosso", "threeDSXL"),
+    ("Game Boy Color giallo funzionante", "gameBoyColor"), ("Wii U 32GB nera con gamepad", "wiiU"),
+]
+
+
+def test_accessori_non_sono_console():
+    sbagliati = [t for t in ACCESSORI if match_console(t)]
+    assert not sbagliati, f"scambiati per console: {sbagliati}"
+
+
+def test_console_vere_ancora_riconosciute():
+    for t, k in CONSOLE_VERE:
+        m = match_console(t)
+        assert m and m.key == k, (t, m and m.key)

@@ -78,6 +78,9 @@ def analizza(l: Listing, m: Match, listino: dict, costi: dict, mediana: float | 
     val = valuta(m, listino, l)
     if val is None or val <= 0:
         return None
+    # prezzo troppo basso rispetto al valore: quasi sempre accessorio, pezzo rotto o truffa -> scarto
+    if val > 15 and l.price < costi.get("prezzo_minimo_perc", 0.40) * val:
+        return None
     ship, fee = l.shipping, l.buyer_fee
     dship, dfee = costi["default"](l.price)
     ship = dship if ship is None else ship
@@ -97,8 +100,8 @@ def analizza(l: Listing, m: Match, listino: dict, costi: dict, mediana: float | 
         rischio += 60; note += [f"🚫 {f}" for f in m.red_flags]
     for f in m.yellow_flags:
         rischio += 10; note.append(f"⚠️ {f}")
-    if l.price < 0.35 * val and val > 30:
-        rischio += 35; note.append("⚠️ prezzo sospettosamente basso (possibile truffa)")
+    if l.price < 0.55 * val and val > 30:
+        rischio += 20; note.append("⚠️ prezzo molto basso: verifica bene che sia la console intera")
     if m.confidence < 0.85:
         rischio += 10; note.append(f"riconoscimento incerto ({m.confidence:.0%})")
     rischio += max(0, 60 - aff) // 2
