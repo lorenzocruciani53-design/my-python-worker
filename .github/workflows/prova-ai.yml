@@ -1,0 +1,24 @@
+name: Prova AI cacciatore
+
+# Prova veloce (circa 1 minuto): manda due annunci di esempio all'AI gratuita di GitHub e mostra la risposta.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  prova:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONUNBUFFERED: "1"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests openpyxl
+      - run: python -m cacciatore --prova-ai
