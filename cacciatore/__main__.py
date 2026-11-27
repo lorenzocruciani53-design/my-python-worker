@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 import time
@@ -129,7 +130,8 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
                 if acfg.get("attiva") and d.livello != "👀 DA VERIFICARE" and ai_usate < acfg.get("max_per_giro", 15):
                     ai_usate += 1
                     excel_item = (listino.get("console_excel") or {}).get(m.key) if m.kind == "console" else None
-                    v = ai.verifica(d, excel_item, acfg.get("modello", "openai/gpt-4.1-mini"))
+                    v = ai.verifica(d, excel_item, acfg.get("modello", "openai/gpt-4.1-mini"),
+                                    acfg.get("modello_gemini", "gemini-2.5-flash"))
                     if v is None:
                         if acfg.get("obbligatoria", True):
                             d.livello = "👀 DA VERIFICARE"
@@ -206,8 +208,13 @@ def main():
     sources = {n: SOURCES[n](c) for n, c in cfg["siti"].items() if c.get("attivo")}
     print("Siti attivi:", ", ".join(sources) or "nessuno")
     print("Notifiche a:", ", ".join(cfg.get("notifiche_solo_a") or ["tutti i bot"]))
-    print("Controllo AI:", ("attivo (" + cfg.get("ai", {}).get("modello", "") + ")") if cfg.get("ai", {}).get("attiva") and ai.disponibile()
-          else "NON attivo (manca GITHUB_TOKEN o disattivato)")
+    _acfg = cfg.get("ai", {})
+    if _acfg.get("attiva") and os.environ.get("GEMINI_API_KEY"):
+        print("Controllo AI: attivo (Google Gemini " + _acfg.get("modello_gemini", "gemini-2.5-flash") + ")")
+    elif _acfg.get("attiva") and ai.disponibile():
+        print("Controllo AI: attivo (GitHub Models " + _acfg.get("modello", "") + ")")
+    else:
+        print("Controllo AI: NON attivo -> avvisi con le sole regole")
     if not sources:
         print('Nessun sito attivo: metti "attivo": true per almeno un sito in config.json')
         return

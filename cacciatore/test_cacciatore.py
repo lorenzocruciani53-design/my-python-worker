@@ -223,13 +223,14 @@ def test_giro_con_ai(monkeypatch, tmp_path):
                             url="u", seller_reviews=100, seller_rating=0.99) for i, t in titoli.items()]
 
     verdetti = {"1": "compra", "2": "scarta", "3": "verifica", "4": None}
-    monkeypatch.setattr(ai, "verifica", lambda d, item, modello="": None if verdetti[d.listing.id] is None else
+    monkeypatch.setattr(ai, "verifica", lambda d, item, *a: None if verdetti[d.listing.id] is None else
                         {"verdetto": verdetti[d.listing.id], "rischio_truffa": 5, "motivo": "test", "e_il_prodotto_giusto": True})
     inviati = []
     monkeypatch.setattr(notifiche, "invia", lambda d: inviati.append(d.listing.id) or True)
     monkeypatch.setattr(M, "build_queries", lambda *a: [("q", None, None)])
     cfg = json.loads((Path(__file__).parent / "config.json").read_text(encoding="utf-8"))
     cfg["pausa_tra_ricerche_sec"] = 0
+    cfg["ai"].update(attiva=True, obbligatoria=True)
     db = DB(tmp_path / "a.sqlite")
     M.giro(cfg, LISTINO_XL, GameIndex(LISTINO["games"]), db, {"finto": Finto({})}, 0)
     salvati = {a["uid"].split(":")[1]: a["livello"] for a in db.affari()}
