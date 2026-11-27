@@ -11,6 +11,14 @@
 Cerca console e giochi in vendita sui marketplace, li confronta con la **valutazione
 ufficiale Ready2Game** e ti manda una notifica Telegram quando il guadagno è interessante.
 
+## 🤖 Controllo AI gratuito e sempre acceso
+
+- **AI**: prima di avvisarti, un modello AI gratuito di GitHub (GitHub Models, nessuna chiave da creare)
+  legge titolo, descrizione, foto e recensioni del venditore e decide: *compra* (ti arriva l'avviso),
+  *verifica* (solo in dashboard) o *scarta*. Se l'AI non risponde, nessun avviso (`"obbligatoria": true`).
+- **24/7**: ogni turno su GitHub Actions cerca in continuo per ~50 minuti e alla fine fa partire da solo
+  il turno successivo. Per spegnere: `"sempre_acceso": false` in `config.json`.
+
 ## Cosa fa
 
 1. **Listino R2G automatico**: legge dal valutatore (`/pages/vendita-usato`) il listino completo:

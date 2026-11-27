@@ -1,4 +1,7 @@
 {
+  "_sempre_acceso_spiegazione": "true = a fine turno il programma fa ripartire da solo il turno successivo (24/7)",
+  "sempre_acceso": true,
+
   "_notifiche_spiegazione": "nomi dei bot (campo nome in TELEGRAM_BOTS) che ricevono gli avvisi; lista vuota = tutti",
   "notifiche_solo_a": ["Lorenzo"],
 
@@ -7,6 +10,14 @@
   "pausa_minima_tra_giri_sec": 20,
   "pausa_tra_ricerche_sec": 4,
   "listino_ore_validita": 24,
+
+  "ai": {
+    "_spiegazione": "AI gratuita di GitHub (GitHub Models): legge annuncio e foto prima di avvisarti. obbligatoria=true: senza AI nessun avviso",
+    "attiva": true,
+    "obbligatoria": true,
+    "modello": "openai/gpt-4.1-mini",
+    "max_per_giro": 15
+  },
 
   "soglie": {
     "_spiegazione": "min_* = soglia minima per ricevere l'avviso; top_* = affare 🔥. ROI 0.25 = 25% sul costo.",

@@ -1,0 +1,89 @@
+"""Controllo intelligente degli annunci con un modello AI gratuito (GitHub Models).
+
+Funziona dentro GitHub Actions con il GITHUB_TOKEN del repository (permesso "models: read"):
+nessuna chiave da creare, nessun costo. Il piano gratuito ha un limite di richieste
+al giorno, per questo l'AI legge SOLO gli annunci che hanno già superato i filtri.
+
+L'AI riceve: titolo, descrizione, foto, prezzo, recensioni del venditore, modello
+riconosciuto, valutazione Ready2Game e le regole del listino. Risponde con un verdetto:
+  "compra"   -> ti arriva l'avviso
+  "verifica" -> solo in dashboard (dubbi)
+  "scarta"   -> ignorato (accessorio, rotto, truffa, modello sbagliato…)
+"""
+from __future__ import annotations
+
+import json
+import os
+
+import requests
+
+URL = "https://models.github.ai/inference/chat/completions"
+
+ISTRUZIONI = """Sei un esperto di compravendita di console e videogiochi usati in Italia.
+Un rivenditore compra oggetti usati online e li SPEDISCE DIRETTAMENTE a Ready2Game senza vederli:
+se l'oggetto non è come previsto, perde soldi. Devi essere PRUDENTE: nel dubbio "verifica" o "scarta".
+
+Analizza l'annuncio e rispondi SOLO con un JSON:
+{"verdetto": "compra" | "verifica" | "scarta",
+ "e_il_prodotto_giusto": true/false,      // è davvero il modello indicato (non un gioco, accessorio, scatola, clone, lotto diverso)?
+ "grado": "eccellente" | "molto_buono" | "buono" | "accettabile" | "sconosciuto",
+ "accessori_mancanti": ["..."],
+ "rischio_truffa": 0-100,
+ "motivo": "spiegazione breve in italiano, max 25 parole"}
+
+Regole:
+- "scarta" se: non è il prodotto indicato, è rotto/da riparare/per pezzi, bannato o modificato,
+  mancano accessori OBBLIGATORI, è un lotto confuso, è uno scambio o una ricerca, è un codice digitale.
+- Segnali di truffa: prezzo molto sotto il mercato + venditore senza recensioni, frasi tipo "solo bonifico",
+  "contattami su WhatsApp", "regalo", foto prese da internet, testo copiato o in altra lingua senza senso.
+- "compra" solo se è chiaramente il prodotto giusto, completo, in buono stato e il venditore sembra affidabile.
+"""
+
+
+def disponibile() -> bool:
+    return bool(os.environ.get("GITHUB_TOKEN"))
+
+
+def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini") -> dict | None:
+    """Restituisce il verdetto dell'AI, oppure None se l'AI non è raggiungibile."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        return None
+    l, m = d.listing, d.match
+    regole = ""
+    if listino_item:
+        regole = (f"Listino Ready2Game per questo modello: prezzi per grado {listino_item.get('gradi')}; "
+                  f"dotazione: {listino_item.get('dotazione', '').replace(chr(10), ', ')}; "
+                  f"detrazioni: {listino_item.get('detrazioni')}.")
+    testo = (
+        f"Sito: {l.site}\nTitolo: {l.title}\nDescrizione: {(l.description or '(nessuna)')[:1500]}\n"
+        f"Prezzo: {l.price:.2f} € (costo totale con spedizione e commissioni: {d.costo_totale:.2f} €)\n"
+        f"Condizione indicata dal sito: {(l.extra or {}).get('condizione', '')}\n"
+        f"Venditore: {l.seller_name or '?'} · recensioni: {l.seller_reviews if l.seller_reviews is not None else 'sconosciute'}"
+        f" · positive: {'' if l.seller_rating is None else f'{l.seller_rating*100:.0f}%'}\n"
+        f"Luogo: {l.location or '?'}\n"
+        f"Il programma lo ha riconosciuto come: {m.label} ({m.kind}{', ' + m.platform if m.platform else ''})\n"
+        f"Ready2Game lo pagherebbe: {d.valutazione:.2f} € (guadagno stimato {d.guadagno:.2f} €)\n{regole}"
+    )
+    content: list | str = testo
+    if l.image:
+        content = [{"type": "text", "text": testo}, {"type": "image_url", "image_url": {"url": l.image}}]
+    body = {"model": modello, "temperature": 0, "response_format": {"type": "json_object"},
+            "messages": [{"role": "system", "content": ISTRUZIONI}, {"role": "user", "content": content}]}
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+               "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    try:
+        r = requests.post(URL, json=body, headers=headers, timeout=60)
+        if r.status_code >= 400 and l.image:   # alcuni modelli/immagini falliscono: riprova solo testo
+            body["messages"][1]["content"] = testo
+            r = requests.post(URL, json=body, headers=headers, timeout=60)
+        if r.status_code == 429:
+            print("[AI] limite giornaliero gratuito raggiunto")
+            return None
+        r.raise_for_status()
+        out = json.loads(r.json()["choices"][0]["message"]["content"])
+        out["verdetto"] = str(out.get("verdetto", "verifica")).lower()
+        return out
+    except Exception as ex:
+        print(f"[AI] non disponibile: {ex}")
+        return None

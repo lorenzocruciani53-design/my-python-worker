@@ -1,10 +1,17 @@
 name: Cacciatore affari Ready2Game
 
 on:
-  # ogni ora parte un turno che cerca IN CONTINUO per ~50 minuti (un giro completo ogni ~7 min)
+  # Sempre acceso: ogni turno cerca in continuo per ~50 minuti e alla fine fa partire il turno
+  # successivo da solo. Il cron orario è solo una riserva se la catena si interrompe.
+  # Per spegnere: in cacciatore/config.json metti "sempre_acceso": false.
   schedule:
     - cron: "0 * * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write     # per far ripartire il turno successivo
+  models: read       # AI gratuita di GitHub (GitHub Models)
 
 concurrency:
   group: cacciatore-affari
@@ -21,6 +28,7 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
       EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Controllo segreti
         id: check
@@ -80,3 +88,14 @@ jobs:
           path: cacciatore/data/dashboard.html
           retention-days: 3
           if-no-files-found: ignore
+
+      - name: Fai partire il turno successivo (sempre acceso)
+        if: always() && steps.check.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if python -c "import json,sys; sys.exit(0 if json.load(open('cacciatore/config.json')).get('sempre_acceso', True) else 1)"; then
+            gh workflow run cacciatore-affari.yml --ref "${{ github.ref_name }}" && echo "Turno successivo avviato."
+          else
+            echo "sempre_acceso = false: non riparto."
+          fi

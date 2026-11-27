@@ -206,3 +206,34 @@ def test_ps5_venditore_senza_recensioni_non_avvisa():
                 seller_reviews=60, seller_rating=0.98)
     d = analisi.analizza(l, match_console(l.title), LISTINO_XL, COSTI)
     assert analisi.classifica(d, SOGLIE) in ("🔥 TOP", "✅ BUONO")
+
+
+def test_giro_con_ai(monkeypatch, tmp_path):
+    import cacciatore.__main__ as M
+    from cacciatore import ai, notifiche
+    from cacciatore.db import DB
+    from cacciatore.fonti.base import Source
+
+    titoli = {"1": "Nintendo Switch OLED bianca", "2": "Xbox Series X 1TB", "3": "PS5 Slim 1TB", "4": "Nintendo Switch Lite"}
+
+    class Finto(Source):
+        name = "finto"
+        def search(self, q, mx=None):
+            return [Listing(site="finto", id=i, title=t, price=60 if "Lite" in t else (95 if "OLED" in t else 300),
+                            url="u", seller_reviews=100, seller_rating=0.99) for i, t in titoli.items()]
+
+    verdetti = {"1": "compra", "2": "scarta", "3": "verifica", "4": None}
+    monkeypatch.setattr(ai, "verifica", lambda d, item, modello="": None if verdetti[d.listing.id] is None else
+                        {"verdetto": verdetti[d.listing.id], "rischio_truffa": 5, "motivo": "test", "e_il_prodotto_giusto": True})
+    inviati = []
+    monkeypatch.setattr(notifiche, "invia", lambda d: inviati.append(d.listing.id) or True)
+    monkeypatch.setattr(M, "build_queries", lambda *a: [("q", None, None)])
+    cfg = json.loads((Path(__file__).parent / "config.json").read_text(encoding="utf-8"))
+    cfg["pausa_tra_ricerche_sec"] = 0
+    db = DB(tmp_path / "a.sqlite")
+    M.giro(cfg, LISTINO_XL, GameIndex(LISTINO["games"]), db, {"finto": Finto({})}, 0)
+    salvati = {a["uid"].split(":")[1]: a["livello"] for a in db.affari()}
+    assert inviati == ["1"]                       # solo quello che l'AI dice "compra"
+    assert "2" not in salvati                     # scartato dall'AI
+    assert salvati["3"] == "👀 DA VERIFICARE"     # dubbio dell'AI: solo dashboard
+    assert salvati["4"] == "👀 DA VERIFICARE"     # AI non disponibile: niente avviso
