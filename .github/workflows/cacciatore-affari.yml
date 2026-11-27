@@ -68,6 +68,24 @@ jobs:
           pip install -r cacciatore/requirements.txt
           python -m playwright install --with-deps chromium
 
+      # AI open source che vede le foto (gira qui sul server, gratis). Autorizzata da Lorenzo il 27/11.
+      # Se non parte, il giro va avanti con le sole regole.
+      - name: Ripristina modello AI
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-qwen2.5vl:3b
+
+      - name: Avvia AI locale
+        if: steps.check.outputs.ok == 'true'
+        continue-on-error: true
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > /tmp/ollama.log 2>&1 &)
+          for i in $(seq 1 30); do curl -s http://127.0.0.1:11434/api/tags >/dev/null && break; sleep 1; done
+          ollama pull qwen2.5vl:3b
+
       - name: Giro di ricerca
         if: steps.check.outputs.ok == 'true'
         run: timeout 56m python -m cacciatore --durata-minuti 52 || true
