@@ -16,7 +16,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import analisi, dashboard, listino_excel, notifiche
+from . import ai, analisi, dashboard, listino_excel, notifiche
 from . import ready2game as r2g
 from .db import DB
 from .fonti.ebay import Ebay
@@ -86,7 +86,7 @@ def build_queries(listino: dict, cfg: dict, giro: int) -> list[tuple[str, float 
 
 
 def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
-    soglie, trovati, inviati = cfg["soglie"], 0, 0
+    soglie, trovati, inviati, ai_usate = cfg["soglie"], 0, 0, 0
     max_notifiche = soglie.get("max_notifiche_per_giro", 8)
     conta = {n: {"annunci": 0, "riconosciuti": 0, "errori": 0} for n in sources}
     for q, mx, plat in build_queries(listino, cfg, n_giro):
@@ -124,6 +124,25 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
                 d.livello = analisi.classifica(d, soglie) or ""
                 if not d.livello:
                     continue
+                # --- controllo intelligente (AI gratuita di GitHub) sugli annunci da notificare ---
+                acfg = cfg.get("ai", {})
+                if acfg.get("attiva") and d.livello != "👀 DA VERIFICARE" and ai_usate < acfg.get("max_per_giro", 15):
+                    ai_usate += 1
+                    excel_item = (listino.get("console_excel") or {}).get(m.key) if m.kind == "console" else None
+                    v = ai.verifica(d, excel_item, acfg.get("modello", "openai/gpt-4.1-mini"))
+                    if v is None:
+                        if acfg.get("obbligatoria", True):
+                            d.livello = "👀 DA VERIFICARE"
+                            d.note.insert(0, "AI non disponibile: non verificato")
+                    else:
+                        print(f"  [AI] {v.get('verdetto')} · truffa {v.get('rischio_truffa')} · {v.get('motivo')} | {l.title[:60]}")
+                        d.note.insert(0, f"🤖 AI: {v.get('motivo', '')} (rischio truffa {v.get('rischio_truffa', '?')}/100)")
+                        if v.get("accessori_mancanti"):
+                            d.note.insert(1, "🤖 mancano: " + ", ".join(map(str, v["accessori_mancanti"]))[:120])
+                        if v["verdetto"] == "scarta" or v.get("e_il_prodotto_giusto") is False:
+                            continue
+                        if v["verdetto"] != "compra" or int(v.get("rischio_truffa") or 0) > 40:
+                            d.livello = "👀 DA VERIFICARE"
                 invia = (d.livello != "👀 DA VERIFICARE" or soglie.get("notifica_da_verificare")) \
                     and inviati < max_notifiche
                 ok = bool(invia and notifiche.invia(d))
@@ -173,6 +192,8 @@ def main():
     sources = {n: SOURCES[n](c) for n, c in cfg["siti"].items() if c.get("attivo")}
     print("Siti attivi:", ", ".join(sources) or "nessuno")
     print("Notifiche a:", ", ".join(cfg.get("notifiche_solo_a") or ["tutti i bot"]))
+    print("Controllo AI:", ("attivo (" + cfg.get("ai", {}).get("modello", "") + ")") if cfg.get("ai", {}).get("attiva") and ai.disponibile()
+          else "NON attivo (manca GITHUB_TOKEN o disattivato)")
     if not sources:
         print('Nessun sito attivo: metti "attivo": true per almeno un sito in config.json')
         return
