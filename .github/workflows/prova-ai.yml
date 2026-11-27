@@ -21,4 +21,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install requests openpyxl
+      - run: python cacciatore/diagnosi_ai.py
       - run: python -m cacciatore --prova-ai
