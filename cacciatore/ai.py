@@ -28,11 +28,12 @@ Analizza l'annuncio e rispondi SOLO con un JSON:
 {"verdetto": "compra" | "verifica" | "scarta",
  "e_il_prodotto_giusto": true/false,      // è davvero il modello indicato (non un gioco, accessorio, scatola, clone, lotto diverso)?
  "grado": "eccellente" | "molto_buono" | "buono" | "accettabile" | "sconosciuto",
- "accessori_mancanti": ["..."],
+ "accessori_mancanti": ["..."],         // SOLO se il testo o la foto dicono chiaramente che mancano; se non sai, lista vuota
  "rischio_truffa": 0-100,
  "motivo": "spiegazione breve in italiano, max 25 parole"}
 
 Regole:
+- Non inventare: se la descrizione dice che gli accessori ci sono, NON elencarli come mancanti.
 - "scarta" se: non è il prodotto indicato, è rotto/da riparare/per pezzi, bannato o modificato,
   mancano accessori OBBLIGATORI, è un lotto confuso, è uno scambio o una ricerca, è un codice digitale.
 - Segnali di truffa: prezzo molto sotto il mercato + venditore senza recensioni, frasi tipo "solo bonifico",

@@ -194,12 +194,36 @@ def main():
             l = _L(site="prova", id=str(i), title=t, price=p, url="https://esempio", description=desc,
                    seller_reviews=rec, seller_rating=0.99 if rec else None, image=img)
             m = _ric(t, desc, idx, listino)
-            d = analisi.analizza(l, m, listino, {"default": lambda x: (5.0, 1.0), **cfg["costi"]})
+            d = m and analisi.analizza(l, m, listino, {"default": lambda x: (5.0, 1.0), **cfg["costi"]})
+            if not d:
+                print("PROVA AI:", t, "-> già scartato dalle regole (non serve l'AI)")
+                continue
             _a = cfg.get("ai", {})
             t0 = time.time()
             print("PROVA AI:", t, "->", ai.verifica(d, (listino.get("console_excel") or {}).get(m.key),
                   _a.get("modello", ""), _a.get("modello_gemini", "gemini-2.5-flash"),
                   _a.get("modello_locale", "qwen2.5vl:3b"), _a.get("fornitore", "locale")), f"({time.time()-t0:.0f}s)")
+        # annunci VERI di Wallapop, con le loro foto
+        try:
+            veri = Wallapop(cfg["siti"]["wallapop"]).search("nintendo switch oled")[:40]
+        except Exception as ex:
+            veri = []
+            print("PROVA AI: ricerca Wallapop fallita:", ex)
+        provati = 0
+        for l in veri:
+            m = _ric(l.title, l.description, idx, listino)
+            if not m or m.kind != "console":
+                continue
+            d = analisi.analizza(l, m, listino, {"default": lambda x: (5.0, 1.0), **cfg["costi"]})
+            if not d:
+                continue
+            t0 = time.time()
+            v = ai.verifica(d, (listino.get("console_excel") or {}).get(m.key), "", "",
+                            _a.get("modello_locale", "qwen2.5vl:3b"), _a.get("fornitore", "locale"))
+            print(f"PROVA AI REALE: {l.price:.0f}€ | {l.title[:60]} | foto: {bool(l.image)} -> {v} ({time.time()-t0:.0f}s)")
+            provati += 1
+            if provati >= 3:
+                break
         return
 
     if a.prova:
