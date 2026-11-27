@@ -1,26 +1,41 @@
 name: Prova AI cacciatore
 
-# Prova veloce (circa 1 minuto): manda due annunci di esempio all'AI gratuita di GitHub e mostra la risposta.
+# Prova veloce: avvia l'AI open source sul server (Ollama + modello che vede le immagini)
+# e le fa giudicare tre annunci di esempio.
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   prova:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
     env:
       PYTHONUNBUFFERED: "1"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MODELLO: qwen2.5vl:3b
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install requests openpyxl
-      - run: python cacciatore/diagnosi_ai.py
+
+      - name: Ripristina modello AI
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.MODELLO }}
+
+      - name: Avvia AI locale
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > /tmp/ollama.log 2>&1 &)
+          for i in $(seq 1 30); do curl -s http://127.0.0.1:11434/api/tags >/dev/null && break; sleep 1; done
+          ollama pull "$MODELLO"
+          ollama list
+
       - run: python -m cacciatore --prova-ai
+      - if: always()
+        run: tail -20 /tmp/ollama.log || true

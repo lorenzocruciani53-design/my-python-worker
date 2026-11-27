@@ -41,6 +41,53 @@ Regole:
 """
 
 
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
+
+
+def locale_disponibile() -> bool:
+    try:
+        return requests.get(f"{OLLAMA_URL}/api/tags", timeout=3).ok
+    except requests.RequestException:
+        return False
+
+
+def _immagine_base64(url: str) -> str | None:
+    import base64
+    try:
+        r = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        if r.ok and r.headers.get("content-type", "").startswith("image") and len(r.content) < 4_000_000:
+            return base64.b64encode(r.content).decode()
+    except requests.RequestException:
+        pass
+    return None
+
+
+def _locale(testo: str, immagine_url: str, modello: str) -> dict | None:
+    """AI open source che gira sul server stesso (Ollama): vede le immagini, nessuna chiave, nessun costo."""
+    msg = {"role": "user", "content": testo}
+    img = _immagine_base64(immagine_url) if immagine_url else None
+    if img:
+        msg["images"] = [img]
+        msg["content"] += "\nGuarda anche la FOTO allegata: è davvero il prodotto indicato? è completo? si vedono danni?"
+    body = {"model": modello, "stream": False, "format": "json", "options": {"temperature": 0, "num_ctx": 4096},
+            "messages": [{"role": "system", "content": ISTRUZIONI}, msg]}
+    try:
+        r = requests.post(f"{OLLAMA_URL}/api/chat", json=body, timeout=240)
+        if r.status_code >= 400:
+            print(f"[AI] locale errore HTTP {r.status_code}: {r.text[:300]}")
+            return None
+        out = estrai_json(r.json().get("message", {}).get("content", ""))
+        if out is None:
+            print(f"[AI] locale: risposta non in JSON: {r.text[:300]!r}")
+            return None
+        out["verdetto"] = str(out.get("verdetto", "verifica")).lower()
+        out["foto_vista"] = bool(img)
+        return out
+    except Exception as ex:
+        print(f"[AI] locale non disponibile: {type(ex).__name__}: {ex}")
+        return None
+
+
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{modello}:generateContent"
 
 
@@ -75,12 +122,11 @@ def _gemini(testo: str, modello: str) -> dict | None:
 
 
 def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini",
-             modello_gemini: str = "gemini-2.5-flash") -> dict | None:
+             modello_gemini: str = "gemini-2.5-flash", modello_locale: str = "",
+             fornitore: str = "locale") -> dict | None:
     """Restituisce il verdetto dell'AI, oppure None se l'AI non è raggiungibile.
-    Usa Google Gemini se c'è GEMINI_API_KEY, altrimenti GitHub Models."""
+    fornitore: "locale" (Ollama sul server), "gemini" (GEMINI_API_KEY) o "github" (GitHub Models)."""
     token = os.environ.get("GITHUB_TOKEN")
-    if not token and not os.environ.get("GEMINI_API_KEY"):
-        return None
     l, m = d.listing, d.match
     regole = ""
     if listino_item:
@@ -97,8 +143,14 @@ def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini",
         f"Il programma lo ha riconosciuto come: {m.label} ({m.kind}{', ' + m.platform if m.platform else ''})\n"
         f"Ready2Game lo pagherebbe: {d.valutazione:.2f} € (guadagno stimato {d.guadagno:.2f} €)\n{regole}"
     )
-    if os.environ.get("GEMINI_API_KEY"):
+    if fornitore == "locale":
+        return _locale(testo, l.image, modello_locale or "qwen2.5vl:3b")
+    if fornitore == "gemini" or os.environ.get("GEMINI_API_KEY"):
+        if not os.environ.get("GEMINI_API_KEY"):
+            return None
         return _gemini(testo + (f"\nFoto: {l.image}" if l.image else ""), modello_gemini)
+    if not token:
+        return None
     content: list | str = testo
     if l.image:
         content = [{"type": "text", "text": testo}, {"type": "image_url", "image_url": {"url": l.image}}]

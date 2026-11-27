@@ -131,7 +131,8 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
                     ai_usate += 1
                     excel_item = (listino.get("console_excel") or {}).get(m.key) if m.kind == "console" else None
                     v = ai.verifica(d, excel_item, acfg.get("modello", "openai/gpt-4.1-mini"),
-                                    acfg.get("modello_gemini", "gemini-2.5-flash"))
+                                    acfg.get("modello_gemini", "gemini-2.5-flash"),
+                                    acfg.get("modello_locale", "qwen2.5vl:3b"), acfg.get("fornitore", "locale"))
                     if v is None:
                         if acfg.get("obbligatoria", True):
                             d.livello = "👀 DA VERIFICARE"
@@ -185,14 +186,20 @@ def main():
     if a.prova_ai:
         from .fonti.base import Listing as _L
         from .matcher import riconosci as _ric
-        prove = [("Nintendo Switch OLED bianca completa di tutto, perfetta", "Vendo per inutilizzo, dock, joycon, cavi originali. Spedisco.", 150, 40),
-                 ("PS5 Slim 1TB come nuova", "contattami su whatsapp, pagamento solo bonifico", 250, 0)]
-        for i, (t, desc, p, rec) in enumerate(prove):
+        prove = [("Nintendo Switch OLED bianca completa di tutto, perfetta", "Vendo per inutilizzo, dock, joycon, cavi originali. Spedisco.", 150, 40,
+                  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Nintendo_Switch_OLED_Model.jpg/640px-Nintendo_Switch_OLED_Model.jpg"),
+                 ("PS5 Slim 1TB come nuova", "contattami su whatsapp, pagamento solo bonifico", 250, 0, ""),
+                 ("Nintendo Switch con joycon", "joycon con drift, schermo graffiato, la vendo così", 90, 12, "")]
+        for i, (t, desc, p, rec, img) in enumerate(prove):
             l = _L(site="prova", id=str(i), title=t, price=p, url="https://esempio", description=desc,
-                   seller_reviews=rec, seller_rating=0.99 if rec else None)
+                   seller_reviews=rec, seller_rating=0.99 if rec else None, image=img)
             m = _ric(t, desc, idx, listino)
             d = analisi.analizza(l, m, listino, {"default": lambda x: (5.0, 1.0), **cfg["costi"]})
-            print("PROVA AI:", t, "->", ai.verifica(d, (listino.get("console_excel") or {}).get(m.key), cfg.get("ai", {}).get("modello", "openai/gpt-4.1-mini")))
+            _a = cfg.get("ai", {})
+            t0 = time.time()
+            print("PROVA AI:", t, "->", ai.verifica(d, (listino.get("console_excel") or {}).get(m.key),
+                  _a.get("modello", ""), _a.get("modello_gemini", "gemini-2.5-flash"),
+                  _a.get("modello_locale", "qwen2.5vl:3b"), _a.get("fornitore", "locale")), f"({time.time()-t0:.0f}s)")
         return
 
     if a.prova:
@@ -209,7 +216,10 @@ def main():
     print("Siti attivi:", ", ".join(sources) or "nessuno")
     print("Notifiche a:", ", ".join(cfg.get("notifiche_solo_a") or ["tutti i bot"]))
     _acfg = cfg.get("ai", {})
-    if _acfg.get("attiva") and os.environ.get("GEMINI_API_KEY"):
+    if _acfg.get("attiva") and _acfg.get("fornitore", "locale") == "locale":
+        print("Controllo AI: locale (" + _acfg.get("modello_locale", "qwen2.5vl:3b") + ") "
+              + ("pronta" if ai.locale_disponibile() else "NON raggiungibile -> avvisi con le sole regole"))
+    elif _acfg.get("attiva") and os.environ.get("GEMINI_API_KEY"):
         print("Controllo AI: attivo (Google Gemini " + _acfg.get("modello_gemini", "gemini-2.5-flash") + ")")
     elif _acfg.get("attiva") and ai.disponibile():
         print("Controllo AI: attivo (GitHub Models " + _acfg.get("modello", "") + ")")
