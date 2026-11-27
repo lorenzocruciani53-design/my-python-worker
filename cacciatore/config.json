@@ -15,7 +15,9 @@
     "top_guadagno": 40,
     "top_roi": 0.35,
     "notifica_da_verificare": false,
-    "max_notifiche_per_giro": 8
+    "max_notifiche_per_giro": 8,
+    "_recensioni_spiegazione": "oltre 80 € di valore serve un venditore con almeno N recensioni, altrimenti niente avviso",
+    "min_recensioni_oltre_80": 5
   },
 
   "costi": {

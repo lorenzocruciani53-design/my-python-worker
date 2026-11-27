@@ -57,7 +57,7 @@ def valuta(match: Match, listino: dict, listing: Listing | None = None) -> float
 def affidabilita_venditore(l: Listing) -> tuple[int, list[str]]:
     note = []
     if l.seller_rating is None and l.seller_reviews is None:
-        return 50, ["recensioni venditore non disponibili"]
+        return 30, ["⚠️ recensioni venditore non disponibili"]
     score = 50.0
     if l.seller_rating is not None:
         r = float(l.seller_rating)
@@ -66,7 +66,7 @@ def affidabilita_venditore(l: Listing) -> tuple[int, list[str]]:
             note.append(f"⚠️ solo {r*100:.0f}% recensioni positive")
     n = l.seller_reviews or 0
     if n == 0:
-        score -= 25; note.append("⚠️ venditore senza recensioni")
+        score -= 40; note.append("⚠️ venditore senza recensioni")
     elif n < 5:
         score -= 12; note.append(f"venditore con poche recensioni ({n})")
     elif n >= 50:
@@ -125,6 +125,19 @@ def classifica(d: Deal, soglie: dict) -> str | None:
     """Restituisce il livello di notifica, o None se non vale la pena."""
     if d.match.red_flags or d.guadagno <= 0:
         return None
+    if d.guadagno < soglie["min_guadagno"] or d.roi < soglie["min_roi"]:
+        return None
+    l = d.listing
+    rec = l.seller_reviews
+    pochi = rec is None or rec < soglie.get("min_recensioni_oltre_80", 5)
+    # Oggetti di valore: niente avviso se il venditore è nuovo o le recensioni non si leggono.
+    # Prezzo molto sotto il valore + venditore nuovo = schema tipico della truffa -> scartato.
+    if d.valutazione >= 80 and pochi:
+        if l.price < 0.75 * d.valutazione:
+            return None
+        return "👀 DA VERIFICARE"
+    if l.seller_rating is not None and l.seller_rating < 0.9:
+        return "👀 DA VERIFICARE"
     if d.guadagno >= soglie["top_guadagno"] and d.roi >= soglie["top_roi"] and d.rischio <= 30:
         return "🔥 TOP"
     if d.guadagno >= soglie["min_guadagno"] and d.roi >= soglie["min_roi"] and d.rischio <= 50:
