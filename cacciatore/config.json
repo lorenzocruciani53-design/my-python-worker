@@ -16,7 +16,7 @@
     "_fornitore_spiegazione": "locale = AI open source che gira sul server stesso (vede le foto, gratis, nessuna chiave)",
     "fornitore": "locale",
     "modello_locale": "qwen2.5vl:3b",
-    "attiva": false,
+    "attiva": true,
     "obbligatoria": false,
     "modello": "openai/gpt-4.1-mini",
     "modello_gemini": "gemini-2.5-flash",
