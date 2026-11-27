@@ -190,3 +190,19 @@ DAL_GIRO_VERI = ["Nintendo 3DS Rossa", "New Nintendo 2DS XL Negra", "Nintendo 3D
 def test_titoli_reali_del_primo_giro():
     assert [t for t in DAL_GIRO_FALSI if match_console(t)] == []
     assert [t for t in DAL_GIRO_VERI if not match_console(t)] == []
+
+
+def test_ps5_venditore_senza_recensioni_non_avvisa():
+    # caso reale 27/11: PS5 Slim "come nuova" a 300 € su Wallapop, venditore con 0 recensioni
+    for rec in (0, None):
+        l = Listing(site="wallapop", id=f"ps5-{rec}", title="PS5 Slim 1TB", price=300, url="https://x",
+                    seller_reviews=rec)
+        d = analisi.analizza(l, match_console(l.title), LISTINO_XL, COSTI)
+        assert d is not None and analisi.classifica(d, SOGLIE) is None   # 300 < 75% di 417: scartato
+    l = Listing(site="wallapop", id="ps5-ok-prezzo", title="PS5 Slim 1TB", price=320, url="https://x", seller_reviews=2)
+    d = analisi.analizza(l, match_console(l.title), LISTINO_XL, COSTI)
+    assert analisi.classifica(d, SOGLIE) == "👀 DA VERIFICARE"            # niente notifica
+    l = Listing(site="wallapop", id="ps5-buono", title="PS5 Slim 1TB", price=320, url="https://x",
+                seller_reviews=60, seller_rating=0.98)
+    d = analisi.analizza(l, match_console(l.title), LISTINO_XL, COSTI)
+    assert analisi.classifica(d, SOGLIE) in ("🔥 TOP", "✅ BUONO")
