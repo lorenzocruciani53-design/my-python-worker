@@ -222,6 +222,15 @@ def _tokens(text: str) -> list[str]:
     return [w for w in norm(text).split() if w not in _STOP and len(w) > 1]
 
 
+# Oggetti legati a un gioco ma che NON sono il gioco
+NON_UN_GIOCO = [r"\bmanual[ei]\b", r"\bsolo (la )?(custodia|scatola|cover|copertina|box|libretto)\b",
+                r"\bcustodia vuota\b", r"\bscatola vuota\b", r"\bbox vuot", r"\bguida (strategica|ufficiale)\b",
+                r"\bartbook\b", r"\bposter\b", r"\bsteelbook\b", r"\bcolonna sonora\b", r"\bsoundtrack\b",
+                r"\bost\b", r"\bamiibo\b", r"\bfigure\b", r"\bfunko\b", r"\bpeluche\b", r"\bmaglietta\b",
+                r"\blibretto\b", r"\bcopertina\b", r"\binsert\b", r"\bcodice\b", r"\bdlc\b", r"\bkey\b",
+                r"\bdigitale\b", r"\bdownload\b", r"\brepro\b", r"\breplica\b", r"\bfalso\b", r"\bcopia\b"]
+
+
 class GameIndex:
     def __init__(self, games: list[dict]):
         self.games = games
@@ -241,6 +250,8 @@ class GameIndex:
         return None
 
     def match(self, title: str, description: str = "", platform_hint: str | None = None) -> Match | None:
+        if any(re.search(rx, norm(title)) for rx in NON_UN_GIOCO):
+            return None
         plat = platform_hint or self.platform_of(title) or self.platform_of(description)
         q = set(_tokens(title))
         if not q:

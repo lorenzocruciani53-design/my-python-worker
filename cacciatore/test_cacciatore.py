@@ -237,3 +237,14 @@ def test_giro_con_ai(monkeypatch, tmp_path):
     assert "2" not in salvati                     # scartato dall'AI
     assert salvati["3"] == "👀 DA VERIFICARE"     # dubbio dell'AI: solo dashboard
     assert salvati["4"] == "👀 DA VERIFICARE"     # AI non disponibile: niente avviso
+
+
+def test_ai_estrai_json_e_manuali():
+    from cacciatore.ai import estrai_json
+    assert estrai_json('{"verdetto":"compra"}') == {"verdetto": "compra"}
+    assert estrai_json('```json\n{"verdetto":"scarta"}\n```') == {"verdetto": "scarta"}
+    assert estrai_json('Ecco: {"verdetto":"verifica"} fine') == {"verdetto": "verifica"}
+    assert estrai_json("") is None
+    idx = GameIndex(LISTINO["games"])
+    assert idx.match("Manuale di Zelda Ocarina of Time") is None
+    assert idx.match("Solo custodia Pokemon Rosso Game Boy") is None

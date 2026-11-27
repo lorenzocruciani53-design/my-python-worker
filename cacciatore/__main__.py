@@ -162,6 +162,7 @@ def giro(cfg, listino, idx, db, sources, n_giro, verbose=False):
 def main():
     ap = argparse.ArgumentParser(description="Cacciatore affari Ready2Game")
     ap.add_argument("--una-volta", action="store_true")
+    ap.add_argument("--prova-ai", action="store_true", help="manda un annuncio di prova all'AI e mostra la risposta")
     ap.add_argument("--durata-minuti", type=float, default=0,
                     help="gira in continuo per N minuti e poi si ferma (0 = per sempre)")
     ap.add_argument("--listino", action="store_true")
@@ -177,6 +178,19 @@ def main():
     print(f"Listino R2G: {len(listino.get('console_excel') or listino['config']['consoles'])} console"
           f"{' (Excel, per grado)' if listino.get('console_excel') else ''}, {len(listino['games'])} giochi")
     if a.listino:
+        return
+
+    if a.prova_ai:
+        from .fonti.base import Listing as _L
+        from .matcher import riconosci as _ric
+        prove = [("Nintendo Switch OLED bianca completa di tutto, perfetta", "Vendo per inutilizzo, dock, joycon, cavi originali. Spedisco.", 150, 40),
+                 ("PS5 Slim 1TB come nuova", "contattami su whatsapp, pagamento solo bonifico", 250, 0)]
+        for i, (t, desc, p, rec) in enumerate(prove):
+            l = _L(site="prova", id=str(i), title=t, price=p, url="https://esempio", description=desc,
+                   seller_reviews=rec, seller_rating=0.99 if rec else None)
+            m = _ric(t, desc, idx, listino)
+            d = analisi.analizza(l, m, listino, {"default": lambda x: (5.0, 1.0), **cfg["costi"]})
+            print("PROVA AI:", t, "->", ai.verifica(d, (listino.get("console_excel") or {}).get(m.key), cfg.get("ai", {}).get("modello", "openai/gpt-4.1-mini")))
         return
 
     if a.prova:

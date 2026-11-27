@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 import requests
 
@@ -80,10 +81,39 @@ def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini")
         if r.status_code == 429:
             print("[AI] limite giornaliero gratuito raggiunto")
             return None
-        r.raise_for_status()
-        out = json.loads(r.json()["choices"][0]["message"]["content"])
+        if r.status_code >= 400:
+            print(f"[AI] errore HTTP {r.status_code}: {r.text[:300]}")
+            return None
+        try:
+            contenuto = r.json()["choices"][0]["message"]["content"]
+        except Exception:
+            print(f"[AI] risposta non valida (HTTP {r.status_code}, {r.headers.get('content-type')}): {r.text[:300]!r}")
+            return None
+        out = estrai_json(contenuto)
+        if out is None:
+            print(f"[AI] testo non in formato JSON: {str(contenuto)[:300]!r}")
+            return None
         out["verdetto"] = str(out.get("verdetto", "verifica")).lower()
         return out
     except Exception as ex:
-        print(f"[AI] non disponibile: {ex}")
+        print(f"[AI] non disponibile: {type(ex).__name__}: {ex}")
         return None
+
+
+def estrai_json(testo) -> dict | None:
+    """Accetta JSON puro, JSON dentro ```json ... ``` o con testo intorno."""
+    if isinstance(testo, list):  # alcuni modelli rispondono a blocchi
+        testo = "".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in testo)
+    t = str(testo or "").strip()
+    t = re.sub(r"^```(?:json)?\s*|\s*```$", "", t)
+    try:
+        v = json.loads(t)
+        return v if isinstance(v, dict) else None
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", t, re.S)
+        if m:
+            try:
+                return json.loads(m.group())
+            except json.JSONDecodeError:
+                return None
+    return None
