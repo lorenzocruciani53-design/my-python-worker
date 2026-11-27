@@ -12,10 +12,11 @@
   "listino_ore_validita": 24,
 
   "ai": {
-    "_spiegazione": "AI gratuita di GitHub (GitHub Models): legge annuncio e foto prima di avvisarti. obbligatoria=true: senza AI nessun avviso",
-    "attiva": true,
-    "obbligatoria": true,
+    "_spiegazione": "AI che legge l'annuncio prima di avvisarti. Usa Google Gemini se c'è il segreto GEMINI_API_KEY (gratis con account Google). GitHub Models (gratis) al 27/11 risponde solo 'OK': per questo è spenta finché non c'è Gemini. obbligatoria=true: senza AI nessun avviso",
+    "attiva": false,
+    "obbligatoria": false,
     "modello": "openai/gpt-4.1-mini",
+    "modello_gemini": "gemini-2.5-flash",
     "max_per_giro": 15
   },
 

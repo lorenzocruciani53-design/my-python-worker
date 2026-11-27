@@ -41,14 +41,45 @@ Regole:
 """
 
 
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{modello}:generateContent"
+
+
 def disponibile() -> bool:
-    return bool(os.environ.get("GITHUB_TOKEN"))
+    return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GITHUB_TOKEN"))
 
 
-def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini") -> dict | None:
-    """Restituisce il verdetto dell'AI, oppure None se l'AI non è raggiungibile."""
+def _gemini(testo: str, modello: str) -> dict | None:
+    """Google Gemini (piano gratuito con un account Google). Chiave in GEMINI_API_KEY."""
+    key = os.environ["GEMINI_API_KEY"]
+    body = {"system_instruction": {"parts": [{"text": ISTRUZIONI}]},
+            "contents": [{"role": "user", "parts": [{"text": testo}]}],
+            "generationConfig": {"temperature": 0, "responseMimeType": "application/json"}}
+    try:
+        r = requests.post(GEMINI_URL.format(modello=modello), params={"key": key}, json=body, timeout=60)
+        if r.status_code == 429:
+            print("[AI] Gemini: limite gratuito raggiunto")
+            return None
+        if r.status_code >= 400:
+            print(f"[AI] Gemini errore HTTP {r.status_code}: {r.text[:300]}")
+            return None
+        parti = r.json()["candidates"][0]["content"]["parts"]
+        out = estrai_json("".join(p.get("text", "") for p in parti))
+        if out is None:
+            print(f"[AI] Gemini: risposta non in JSON: {r.text[:300]!r}")
+            return None
+        out["verdetto"] = str(out.get("verdetto", "verifica")).lower()
+        return out
+    except Exception as ex:
+        print(f"[AI] Gemini non disponibile: {type(ex).__name__}: {ex}")
+        return None
+
+
+def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini",
+             modello_gemini: str = "gemini-2.5-flash") -> dict | None:
+    """Restituisce il verdetto dell'AI, oppure None se l'AI non è raggiungibile.
+    Usa Google Gemini se c'è GEMINI_API_KEY, altrimenti GitHub Models."""
     token = os.environ.get("GITHUB_TOKEN")
-    if not token:
+    if not token and not os.environ.get("GEMINI_API_KEY"):
         return None
     l, m = d.listing, d.match
     regole = ""
@@ -66,6 +97,8 @@ def verifica(d, listino_item: dict | None, modello: str = "openai/gpt-4.1-mini")
         f"Il programma lo ha riconosciuto come: {m.label} ({m.kind}{', ' + m.platform if m.platform else ''})\n"
         f"Ready2Game lo pagherebbe: {d.valutazione:.2f} € (guadagno stimato {d.guadagno:.2f} €)\n{regole}"
     )
+    if os.environ.get("GEMINI_API_KEY"):
+        return _gemini(testo + (f"\nFoto: {l.image}" if l.image else ""), modello_gemini)
     content: list | str = testo
     if l.image:
         content = [{"type": "text", "text": testo}, {"type": "image_url", "image_url": {"url": l.image}}]

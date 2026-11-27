@@ -15,6 +15,7 @@ jobs:
     env:
       PYTHONUNBUFFERED: "1"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
